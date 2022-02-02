@@ -1,36 +1,58 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI
 
-# Controls when the workflow will run
-on:
-  # Triggers the workflow on push or pull request events but only for the master branch
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+on: [push, pull_request]
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
+  build_job:
+    # The host should always be linux
     runs-on: ubuntu-latest
+    name: bullseye
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2.1.0
+      - uses: uraimo/run-on-arch-action@v2.1.1
+        name: Build artifact
+        id: build
+        with:
+          arch: armv7
+          distro: bullseye
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: docker pull ghcr.io/7dog123/wkf/run-on-arch-7dog123-wkf-ci-armv7-bullseye:latest
+          # Not required, but speeds up builds
+          githubToken: ${{ github.token }}
 
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+          # Create an artifacts directory
+          setup: |
+            mkdir -p "${PWD}/artifacts"
+
+          # Mount the artifacts directory as /artifacts in the container
+          dockerRunArgs: |
+            --volume "${PWD}/artifacts:/artifacts"
+
+          # Pass some environment variables to the container
+          env: | # YAML, but pipe character is necessary
+            artifact_name: n64toolchain
+
+          # The shell to run commands with in the container
+          shell: /bin/sh
+
+          # Install some dependencies in the container. This speeds up builds if
+          # you are also using githubToken. Any dependencies installed here will
+          # be part of the container image that gets cached, so subsequent
+          # builds don't have to re-install them. The image layer is cached
+          # publicly in your project's package repository, so it is vital that
+          # no secrets are present in the container state or logs.
+          install: |
+            sudo apt-get update
+            apt-get update -y
+            apt-get install -y git build-essential libmpfr-dev libmpc-dev libgmp-dev flex bison
+
+          # Produce a binary artifact and place it in the mounted volume
+          run: |
+            cp $(git) "/artifacts/${artifact_name}"
+            ./build-n64toolchain.sh
+
+      - name: Show the artifact
+        # Items placed in /artifacts in the container will be in
+        # ${PWD}/artifacts on the host.
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          ls -al "${PWD}/artifacts"
