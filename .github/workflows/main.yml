@@ -44,7 +44,7 @@ jobs:
           install: |
             apt-get update
             apt-get update -y
-            apt-get install -y git build-essential libmpfr-dev libmpc-dev libgmp-dev wget flex bison
+            apt-get install -y git build-essential libmpfr-dev libmpc-dev libgmp-dev wget texinfo flex bison
 
           # Produce a binary artifact and place it in the mounted volume
           run: |
