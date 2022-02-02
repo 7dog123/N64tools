@@ -42,14 +42,15 @@ jobs:
           # publicly in your project's package repository, so it is vital that
           # no secrets are present in the container state or logs.
           install: |
-            sudo apt-get update
+            apt-get update
             apt-get update -y
             apt-get install -y git build-essential libmpfr-dev libmpc-dev libgmp-dev flex bison
 
           # Produce a binary artifact and place it in the mounted volume
           run: |
-            cp $(git) "/artifacts/${artifact_name}"
             ./build-n64toolchain.sh
+            cp $(git) "/artifacts/${artifact_name}"
+            
 
       - name: Show the artifact
         # Items placed in /artifacts in the container will be in
