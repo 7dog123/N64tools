@@ -167,7 +167,7 @@ if [ ! -f stamps/newlib-install ]; then
     --with-cpu=mips64vr4300 \
     --disable-threads \
     --disable-libssp \
-    --disable-werror \
+    --disable-werror
   make -j "$JOBS"
   make install
   popd
