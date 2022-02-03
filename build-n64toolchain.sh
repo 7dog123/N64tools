@@ -1,13 +1,10 @@
 #!/bin/bash
 set -eu
 
-getnumproc() {
-which getconf >/dev/null 2>/dev/null && {
-	getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/null || echo 1;
-} || echo 1;
-};
+# Determine how many parallel Make jobs to run based on CPU count
+JOBS="${JOBS:-$(getconf _NPROCESSORS_ONLN)}"
+JOBS="${JOBS:-1}" # If getconf returned nothing, default to 1
 
-numproc=`getnumproc`
 
 BINUTILS="ftp://ftp.gnu.org/gnu/binutils/binutils-2.34.tar.bz2"
 GCC="ftp://ftp.gnu.org/gnu/gcc/gcc-10.1.0/gcc-10.1.0.tar.gz"
@@ -54,7 +51,7 @@ fi
 
 if [ ! -f stamps/binutils-build ]; then
   pushd binutils-build
-  make -j${numproc}
+  make -j "$JOBS"
   popd
 
   touch stamps/binutils-build
@@ -117,7 +114,7 @@ fi
 
 if [ ! -f stamps/gcc-build ]; then
   pushd gcc-build
-  make all-gcc -j${numproc}
+  make all-gcc -j "$JOBS"
   popd
 
   touch stamps/gcc-build
@@ -125,10 +122,10 @@ fi
 
 if [ ! -f stamps/libgcc-build ]; then
   pushd gcc-build
-  make all-target-libgcc \
+  make all-target-libgcc -j "$JOBS" \
     CFLAGS_FOR_TARGET="${TCFLAG}" \
-    CXXFLAGS_FOR_TARGET="${TCXXFLAG}" \
-    -j${numproc}
+    CXXFLAGS_FOR_TARGET="${TCXXFLAG}" 
+
   popd
 
   touch stamps/libgcc-build
@@ -165,13 +162,13 @@ if [ ! -f stamps/newlib-install ]; then
   pushd newlib-build
   CFLAGS_FOR_TARGET="${TCFLAG}" \
     CXXFLAGS_FOR_TARGET="${TCXXFLAG}" \
-    ../newlib-source/configure
+    ../newlib-source/configure \
     --target=mips64-elf --prefix=${SCRIPT_DIR} \
     --with-cpu=mips64vr4300 \
     --disable-threads \
     --disable-libssp \
     --disable-werror \
-  make -j${numproc}
+  make -j "$JOBS"
   make install
   popd
 
